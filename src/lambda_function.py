@@ -102,31 +102,34 @@ with open('synset.txt', 'r') as f:
 
 def lambda_handler(event, context):
 
-    url = ''
     try:
-        # API Gateway GET method
-        if event['httpMethod'] == 'GET':
-            url = event['queryStringParameters']['url']
-        # API Gateway POST method
-        elif event['httpMethod'] == 'POST':
-            data = json.loads(event['body'])
-            url = data['url']
-    except KeyError:
-        # direct invocation
-        url = event['url']
-    
-    sym, arg_params, aux_params = load_model(f_symbol_file.name, f_params_file.name)
-    mod = mx.mod.Module(symbol=sym, label_names=None)
-    mod.bind(for_training=False, data_shapes=[('data', (1,3,224,224))], label_shapes=mod._label_shapes)
-    mod.set_params(arg_params, aux_params, allow_missing=True)
-    labels = predict(url, mod, synsets)
-    
-    out = {
-            "headers": {
-                "content-type": "application/json",
-                "Access-Control-Allow-Origin": "*"
-                },
-            "body": labels,  
-            "statusCode": 200
-          }
-    return out
+        url = ''
+        try:
+            # API Gateway GET method
+            if event['httpMethod'] == 'GET':
+                url = event['queryStringParameters']['url']
+            # API Gateway POST method
+            elif event['httpMethod'] == 'POST':
+                data = json.loads(event['body'])
+                url = data['url']
+        except KeyError:
+            # direct invocation
+            url = event['url']
+
+        sym, arg_params, aux_params = load_model(f_symbol_file.name, f_params_file.name)
+        mod = mx.mod.Module(symbol=sym, label_names=None)
+        mod.bind(for_training=False, data_shapes=[('data', (1,3,224,224))], label_shapes=mod._label_shapes)
+        mod.set_params(arg_params, aux_params, allow_missing=True)
+        labels = predict(url, mod, synsets)
+
+        out = {
+                "headers": {
+                    "content-type": "application/json",
+                    "Access-Control-Allow-Origin": "*"
+                    },
+                "body": labels,
+                "statusCode": 200
+              }
+        return out
+    except Exception as e:
+        print e
