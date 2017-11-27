@@ -1,15 +1,13 @@
 # MXNet package for AWS Lambda
 
-This is a reference application that predicts labels along with their probablities for an image using a pre-trained model with [Apache MXNet](http://mxnet.io) deployed on [AWS Lambda](https://aws.amazon.com/lambda). A Serverless Application Model template (SAM) and instructions are provided to automate the creation of an API endpoint.
- 
-You can leverage this package and its precompiled libraries to build your prediction pipeline on AWS Lambda with MXNet.
+This is a reference application that predicts labels along with their probablities for an image using a pre-trained model with [Apache MXNet](http://mxnet.io) deployed on [AWS Lambda](https://aws.amazon.com/lambda).
+It has been adapted from the original function available from AWS Labs (https://github.com/awslabs/mxnet-lambda) so that users can specify, using Lambda environment variables, the model they want to use.
 
-Additional models can be found in the [Model Zoo](http://data.mxnet.io/models/)
+A Serverless Application Model template (SAM) and instructions are provided to automate the creation of an API endpoint. You can leverage this package and its precompiled libraries to build your prediction pipeline on AWS Lambda with MXNet.
 
-## This repo shows how you can deploy Apache MXNet with AWS Lambda:
+Additional models can be found in the [Model Zoo](http://data.mxnet.io/models/).
 
-- Using AWS CLI to create a Lambda function 
-- Using Serverless Application Model (SAM) to create a serverless application with API Gateway and AWS Lambda
+## This repo shows how you can deploy Apache MXNet with AWS Lambda using Serverless Application Model (SAM) to create a serverless application with API Gateway and AWS Lambda
 
 ## Components
 
@@ -24,8 +22,7 @@ Additional models can be found in the [Model Zoo](http://data.mxnet.io/models/)
 - Create a Lambda function from the CLI by running the following commands: 
 
 ```
-cd mxnet-lambda/src
-zip -9r lambda_function.zip  * 
+
 aws lambda create-function --function-name mxnet-lambda-v2 --zip-file fileb://lambda_function.zip --runtime python2.7 --region us-east-1 --role MY_ROLE_ARN --handler lambda_function.lambda_handler --memory-size 1536 --timeout 60
 ```
 - Update the Lambda function code
@@ -33,12 +30,10 @@ aws lambda create-function --function-name mxnet-lambda-v2 --zip-file fileb://la
 ```
 aws lambda update-function-code --function-name mxnet-lambda-v2 --zip-file fileb://lambda_function.zip
 ```
-- Test the Lambda function: 
-```
-aws lambda invoke --invocation-type RequestResponse --function-name mxnet-lambda-v2 --region us-east-1 --log-type Tail --payload '{"url": "https://images-na.ssl-images-amazon.com/images/G/01/img15/pet-products/small-tiles/23695_pets_vertical_store_dogs_small_tile_8._CB312176604_.jpg"}' output_file
+
 ```
 
-## Option 2: Creating an API endpoint with Serverles Application Model (SAM) 
+## Creating an API endpoint with Serverles Application Model (SAM)
 
 * In the AWS Region you plan to deploy, make sure you have an existing Amazon S3 bucket in which SAM can create the deployment artifacts.
 
@@ -47,6 +42,12 @@ Else create a new bucket using the following AWS CLI command:
 ```
 aws s3 mb s3://<your-bucket-name>
 ```
+
+Place your function in your bucket:
+
+cd mxnet-lambda/src
+zip -9r lambda_function.zip  *
+aws s3 cp lambda_function.zip <<your bucket>>
 
 Before deploying the project to SAM for the first time, you'll need to update some variables in  `lambda_function.py` and `template.yaml`/`swagger.yaml` (found in `sam/` folder).
 
@@ -73,12 +74,19 @@ aws cloudformation deploy \
 --stack-name <STACK_NAME> \
 --capabilities CAPABILITY_IAM
 ```
- 
+
+If something goes wrong, delete your stack:
+
+```
+aws cloudformation delete-stack --stack-name lambda-mxnet
+```
+
+Fix the problem, upload your code, and repeat the package and deploy steps.
 
 - Get the URL of the Serverless application that was created
 
 ```
-$ aws cloudformation describe-stacks --stack-name mxnet-lambda-v2 | python -c 'import json,sys;obj=json.load(sys.stdin);print obj["Stacks"][0]["Outputs"][0]["OutputValue"];'
+$ host=`aws cloudformation describe-stacks --stack-name mxnet-lambda-v2 | python -c 'import json,sys;obj=json.load(sys.stdin);print obj["Stacks"][0]["Outputs"][0]["OutputValue"];'`
 
 Alternately you can go to the AWS cloudformation console, click on your stack to see the output values
 ```
@@ -86,58 +94,26 @@ Alternately you can go to the AWS cloudformation console, click on your stack to
 - Test with GET request
 
 ```
-curl https://MY_URL/predict?url=https://images-na.ssl-images-amazon.com/images/G/01/img15/pet-products/small-tiles/23695_pets_vertical_store_dogs_small_tile_8._CB312176604_.jpg
+curl $host/predict?url=https://images-na.ssl-images-amazon.com/images/G/01/img15/pet-products/small-tiles/23695_pets_vertical_store_dogs_small_tile_8._CB312176604_.jpg
 ```
 
 - Test with POST request
 
 ```
-curl -H "Content-Type: application/json" -X POST https://MY_URL/predict -d '{"url": "https://images-na.ssl-images-amazon.com/images/G/01/img15/pet-products/small-tiles/23695_pets_vertical_store_dogs_small_tile_8._CB312176604_.jpg"}'
+curl -H "Content-Type: application/json" -X POST $host/predict -d '{"url": "https://images-na.ssl-images-amazon.com/images/G/01/img15/pet-products/small-tiles/23695_pets_vertical_store_dogs_small_tile_8._CB312176604_.jpg"}'
 ```
 
-## [Advanced] Build MXNet package from source for AWS Lambda 
-### In case you wondered how the package was created
+- Test the Lambda function directly:
 
-- compile MXNet on Amazon Linux (AMI name: amzn-ami-hvm-2016.03.3.x86_64-gp2)
+Get the function name:
 
-```
-$ git clone --recursive https://github.com/dmlc/mxnet mxnet
-$ cd mxnet 
-$ make -j $(nproc) USE_OPENCV=0 USE_CUDNN=0 USE_CUDA=0 USE_BLAS=openblas 
-```
-
-- build python bindings
+aws lambda list-functions --query Functions[].FunctionName
 
 ```
-$ cd python
-$ python setup.py install
-```
-
-- copy python bindings 
-
-```
-$ mkdir mxnet-lambda-pkg
-$ cd mxnet-lambda-pkg 
-$ cp -r /usr/local/lib/python2.7/site-packages/mxnet-0.10.1-py2.7.egg . 
-$ mv mxnet-0.10.1-py2.7.egg/mxnet . 
-```
-
-- copy all the support libraries to lib folder
-
-```
-$ mkdir lib
-
-Copy all the following libraries from /usr/local/lib or /usr/lib/ to lib/ directory  
-
-libatlas.a       libcblas.so.3.0    libf77blas.so.3.0  libopenblas.so.0   libptf77blas.so.3
-libatlas.so.3    libclapack.so.3    libgfortran.so.3   libptcblas.a       libptf77blas.so.3.0
-libatlas.so.3.0  libclapack.so.3.0  liblapack.a        libptcblas.so.3    libquadmath.so.0
-libcblas.a       libf77blas.a       liblapack.so.3     libptcblas.so.3.0
-libcblas.so.3    libf77blas.so.3    liblapack.so.3.0   libptf77blas.a
-
-```
+aws lambda invoke --invocation-type RequestResponse --function-name <<your function name>> --region us-east-1 --log-type Tail --payload '{"url": "https://images-na.ssl-images-amazon.com/images/G/01/img15/pet-products/small-tiles/23695_pets_vertical_store_dogs_small_tile_8._CB312176604_.jpg"}' output_file
 
 
 ## Notes
 
-All the necessary libraries needed for MXNet have been copied to the src/lib folder. In addition, PIL for Python is also available for your use. OpenCV was available in the previous release, but has been taken out to reduce the size of the code package. Refer to opencv branch for the code 
+All the necessary libraries needed for MXNet have been copied to the src/lib folder. In addition, PIL for Python is also available for your use. OpenCV was available in the previous release, but has been taken out to reduce the size of the code package. Refer to opencv branch for the code.
+The instructions with the original AWS Labs Github code have additional instructions on how the package was put together.
