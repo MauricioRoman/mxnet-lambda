@@ -103,6 +103,11 @@ Then use the function name in the command below:
 aws lambda invoke --invocation-type RequestResponse --function-name <<your function name>> --region us-east-1 --log-type Tail --payload '{"url": "https://images-na.ssl-images-amazon.com/images/G/01/img15/pet-products/small-tiles/23695_pets_vertical_store_dogs_small_tile_8._CB312176604_.jpg"}' output_file
 ```
 
+## Changing the model
+
+You can change the model by specifying environment variables. This can be done in the Lambda console. Along with the output, you can see the model that was used. 
+
+
 ## Notes
 
 All the necessary libraries needed for MXNet have been copied to the src/lib folder. In addition, PIL for Python is also available for your use. OpenCV was available in the previous release, but has been taken out to reduce the size of the code package. Refer to opencv branch for the code. The instructions with the original AWS Labs Github code have additional instructions on how the package was put together.
