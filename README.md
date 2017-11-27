@@ -7,7 +7,7 @@ A Serverless Application Model template (SAM) and instructions are provided to a
 
 Additional models can be found in the [Model Zoo](http://data.mxnet.io/models/).
 
-## This repo shows how you can deploy Apache MXNet with AWS Lambda using Serverless Application Model (SAM) to create a serverless application with API Gateway and AWS Lambda
+This repo shows how you can deploy Apache MXNet with AWS Lambda using Serverless Application Model (SAM) to create a serverless application with API Gateway and AWS Lambda
 
 ## Components
 
@@ -16,22 +16,6 @@ Additional models can be found in the [Model Zoo](http://data.mxnet.io/models/).
 - PIL
 
 * boto3 is included in the Lambda environment, if you want to try it locally please pip install boto3 in your virtualenv 
-
-## Option 1: Instructions to deploy on AWS Lambda
-
-- Create a Lambda function from the CLI by running the following commands: 
-
-```
-
-aws lambda create-function --function-name mxnet-lambda-v2 --zip-file fileb://lambda_function.zip --runtime python2.7 --region us-east-1 --role MY_ROLE_ARN --handler lambda_function.lambda_handler --memory-size 1536 --timeout 60
-```
-- Update the Lambda function code
- 
-```
-aws lambda update-function-code --function-name mxnet-lambda-v2 --zip-file fileb://lambda_function.zip
-```
-
-```
 
 ## Creating an API endpoint with Serverles Application Model (SAM)
 
@@ -45,9 +29,11 @@ aws s3 mb s3://<your-bucket-name>
 
 Place your function in your bucket:
 
+```
 cd mxnet-lambda/src
 zip -9r lambda_function.zip  *
 aws s3 cp lambda_function.zip <<your bucket>>
+```
 
 Before deploying the project to SAM for the first time, you'll need to update some variables in  `lambda_function.py` and `template.yaml`/`swagger.yaml` (found in `sam/` folder).
 
@@ -107,13 +93,16 @@ curl -H "Content-Type: application/json" -X POST $host/predict -d '{"url": "http
 
 Get the function name:
 
+```
 aws lambda list-functions --query Functions[].FunctionName
+```
+
+Then use the function name in the command below:
 
 ```
 aws lambda invoke --invocation-type RequestResponse --function-name <<your function name>> --region us-east-1 --log-type Tail --payload '{"url": "https://images-na.ssl-images-amazon.com/images/G/01/img15/pet-products/small-tiles/23695_pets_vertical_store_dogs_small_tile_8._CB312176604_.jpg"}' output_file
-
+```
 
 ## Notes
 
-All the necessary libraries needed for MXNet have been copied to the src/lib folder. In addition, PIL for Python is also available for your use. OpenCV was available in the previous release, but has been taken out to reduce the size of the code package. Refer to opencv branch for the code.
-The instructions with the original AWS Labs Github code have additional instructions on how the package was put together.
+All the necessary libraries needed for MXNet have been copied to the src/lib folder. In addition, PIL for Python is also available for your use. OpenCV was available in the previous release, but has been taken out to reduce the size of the code package. Refer to opencv branch for the code. The instructions with the original AWS Labs Github code have additional instructions on how the package was put together.
