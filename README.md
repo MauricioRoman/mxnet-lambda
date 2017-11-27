@@ -73,8 +73,6 @@ Fix the problem, upload your code, and repeat the package and deploy steps.
 
 ```
 $ host=`aws cloudformation describe-stacks --stack-name mxnet-lambda-v2 | python -c 'import json,sys;obj=json.load(sys.stdin);print obj["Stacks"][0]["Outputs"][0]["OutputValue"];'`
-
-Alternately you can go to the AWS cloudformation console, click on your stack to see the output values
 ```
 
 - Test with GET request
