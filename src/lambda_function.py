@@ -2,11 +2,11 @@
 Reference code to showcase MXNet model prediction on AWS Lambda 
 
 @author: Sunil Mallya (smallya@amazon.com)
-version: 0.2
+Modified by: Mauricio Roman (mauroman@amazon.com)
+version: 0.2.1
 '''
 
 import os
-import boto3
 import json
 import tempfile
 import urllib2 
@@ -19,17 +19,27 @@ from PIL import Image
 from collections import namedtuple
 Batch = namedtuple('Batch', ['data'])
 
-f_params = 'resnet-18-0000.params'
-f_symbol = 'resnet-18-symbol.json'
-    
-#params
+try:
+    f_params = os.environ['f_params']
+    f_symbol = os.environ['f_symbol']
+    model_url = os.environ['model_url']
+except KeyError:
+    print ("Using default model")
+    f_params = 'resnet-18-0000.params'
+    f_symbol = 'resnet-18-symbol.json'
+    model_url = 'http://data.dmlc.ml/mxnet/models/imagenet/resnet/18-layers'
+
+#f_params = 'resnet-18-0000.params'
+#f_symbol = 'resnet-18-symbol.json'
+#model_url = 'http://data.dmlc.ml/mxnet/models/imagenet/resnet/18-layers'
+
 f_params_file = tempfile.NamedTemporaryFile()
-urlretrieve("http://data.dmlc.ml/mxnet/models/imagenet/resnet/18-layers/resnet-18-0000.params", f_params_file.name)
+urlretrieve(os.path.join(model_url, f_params), f_params_file.name)
 f_params_file.flush()
 
 #symbol
 f_symbol_file = tempfile.NamedTemporaryFile()
-urlretrieve("http://data.dmlc.ml/mxnet/models/imagenet/resnet/18-layers/resnet-18-symbol.json", f_symbol_file.name)
+urlretrieve(os.path.join(model_url, f_symbol), f_symbol_file.name)
 f_symbol_file.flush()
 
 def load_model(s_fname, p_fname):
@@ -121,13 +131,13 @@ def lambda_handler(event, context):
         mod.bind(for_training=False, data_shapes=[('data', (1,3,224,224))], label_shapes=mod._label_shapes)
         mod.set_params(arg_params, aux_params, allow_missing=True)
         labels = predict(url, mod, synsets)
-
+        msg_out = model_url + " " + labels
         out = {
                 "headers": {
                     "content-type": "application/json",
                     "Access-Control-Allow-Origin": "*"
                     },
-                "body": labels,
+                "body": msg_out,
                 "statusCode": 200
               }
         return out
