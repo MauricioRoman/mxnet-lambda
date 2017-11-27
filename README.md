@@ -103,7 +103,7 @@ aws lambda invoke --invocation-type RequestResponse --function-name <<your funct
 
 ## Changing the model
 
-You can change the model by specifying environment variables. This can be done in the Lambda console. Along with the output, you can see the model that was used. 
+You can change the model by specifying environment variables. This can be done in the [Lambda console](http://docs.aws.amazon.com/lambda/latest/dg/env_variables.html). Along with the output, you can see the model that was used. 
 
 
 ## Notes
